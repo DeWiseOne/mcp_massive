@@ -1,4 +1,5 @@
 import os
+import sys
 from typing import Literal
 from dotenv import load_dotenv
 from .server import run
@@ -30,14 +31,31 @@ def main() -> None:
     massive_api_key = os.environ.get("MASSIVE_API_KEY", "")
     polygon_api_key = os.environ.get("POLYGON_API_KEY", "")
 
-    if massive_api_key:
-        print("Starting Massive MCP server with API key configured.")
-    elif polygon_api_key:
-        print("Warning: POLYGON_API_KEY is deprecated. Please migrate to MASSIVE_API_KEY.")
-        print("Starting Massive MCP server with API key configured (using deprecated POLYGON_API_KEY).")
-        # Set MASSIVE_API_KEY from POLYGON_API_KEY for backward compatibility
-        os.environ["MASSIVE_API_KEY"] = polygon_api_key
+    # IMPORTANT (MCP STDIO):
+    # In stdio transport, stdout is reserved for MCP framing. Avoid any banner prints.
+    # If we want logs, they must go to stderr or to a file via the logging module.
+    if transport != "stdio":
+        if massive_api_key:
+            print("Starting Massive MCP server with API key configured.", file=sys.stderr)
+        elif polygon_api_key:
+            print(
+                "Warning: POLYGON_API_KEY is deprecated. Please migrate to MASSIVE_API_KEY.",
+                file=sys.stderr,
+            )
+            print(
+                "Starting Massive MCP server with API key configured (using deprecated POLYGON_API_KEY).",
+                file=sys.stderr,
+            )
+            # Set MASSIVE_API_KEY from POLYGON_API_KEY for backward compatibility
+            os.environ["MASSIVE_API_KEY"] = polygon_api_key
+        else:
+            print(
+                "Warning: MASSIVE_API_KEY environment variable not set.",
+                file=sys.stderr,
+            )
     else:
-        print("Warning: MASSIVE_API_KEY environment variable not set.")
+        # Still honor POLYGON_API_KEY fallback even when stdio (quietly).
+        if (not massive_api_key) and polygon_api_key:
+            os.environ["MASSIVE_API_KEY"] = polygon_api_key
 
     run(transport=transport)

@@ -10,6 +10,6 @@ COPY . ./
 RUN uv pip install --system -e .
 RUN chmod +x entrypoint.py
 
-ENV PYTHONPATH=/app/src:$PYTHONPATH
+ENV PYTHONPATH=/app/src
 
 ENTRYPOINT ["uv", "run", "./entrypoint.py"]

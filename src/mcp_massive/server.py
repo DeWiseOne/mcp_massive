@@ -1,4 +1,5 @@
 import os
+import json
 from typing import Optional, Any, Dict, Union, List, Literal
 from mcp.server.fastmcp import FastMCP
 from mcp.types import ToolAnnotations
@@ -6,6 +7,11 @@ from massive import RESTClient
 from importlib.metadata import version, PackageNotFoundError
 from dotenv import load_dotenv
 from .formatters import json_to_csv
+from .service_metrics import (
+    InstrumentedMassiveClient,
+    ServiceMetrics,
+    safe_tool_count,
+)
 
 from datetime import datetime, date
 
@@ -25,13 +31,33 @@ try:
 except PackageNotFoundError:
     pass
 
-massive_client = RESTClient(MASSIVE_API_KEY)
+SERVICE_METRICS = ServiceMetrics()
+
+massive_client = InstrumentedMassiveClient(RESTClient(MASSIVE_API_KEY), SERVICE_METRICS)
 massive_client.headers["User-Agent"] += f" {version_number}"
 
 # Read port from environment, default to 8000
 PORT = int(os.environ.get("PORT", "8000"))
 
 poly_mcp = FastMCP("Massive", port=PORT)
+
+
+@poly_mcp.tool(annotations=ToolAnnotations(readOnlyHint=True))
+async def get_service_health() -> str:
+    """
+    Get service-side MCP health and recent metrics.
+    """
+    try:
+        snapshot = SERVICE_METRICS.snapshot(
+            tool_count=safe_tool_count(poly_mcp),
+            transport=os.environ.get("MCP_TRANSPORT", "stdio"),
+            port=PORT,
+        )
+        snapshot["version"] = version_number
+        snapshot["api_key_configured"] = bool(MASSIVE_API_KEY)
+        return json.dumps(snapshot, ensure_ascii=False, default=str)
+    except Exception as e:
+        return json.dumps({"status": "error", "error": str(e)}, ensure_ascii=False)
 
 
 @poly_mcp.tool(annotations=ToolAnnotations(readOnlyHint=True))

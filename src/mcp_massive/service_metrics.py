@@ -41,7 +41,9 @@ class ServiceMetrics:
             )
         )
 
-    def snapshot(self, *, tool_count: int | None, transport: str, port: int) -> Dict[str, Any]:
+    def snapshot(
+        self, *, tool_count: int | None, transport: str, host: str, port: int
+    ) -> Dict[str, Any]:
         now = datetime.now(timezone.utc)
         recent = list(self._recent)
         latency_values = [r.latency_ms for r in recent if r.ok]
@@ -59,6 +61,7 @@ class ServiceMetrics:
             "started_at": self.started_at.isoformat(),
             "uptime_seconds": int((now - self.started_at).total_seconds()),
             "transport": transport,
+            "host": host,
             "port": port,
             "tool_count": tool_count,
             "call_count": self.call_count,

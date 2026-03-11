@@ -36,10 +36,11 @@ SERVICE_METRICS = ServiceMetrics()
 massive_client = InstrumentedMassiveClient(RESTClient(MASSIVE_API_KEY), SERVICE_METRICS)
 massive_client.headers["User-Agent"] += f" {version_number}"
 
-# Read port from environment, default to 8000
+# Read bind settings from environment.
+HOST = os.environ.get("HOST", "0.0.0.0")
 PORT = int(os.environ.get("PORT", "8000"))
 
-poly_mcp = FastMCP("Massive", port=PORT)
+poly_mcp = FastMCP("Massive", host=HOST, port=PORT)
 
 
 @poly_mcp.tool(annotations=ToolAnnotations(readOnlyHint=True))
@@ -51,6 +52,7 @@ async def get_service_health() -> str:
         snapshot = SERVICE_METRICS.snapshot(
             tool_count=safe_tool_count(poly_mcp),
             transport=os.environ.get("MCP_TRANSPORT", "stdio"),
+            host=HOST,
             port=PORT,
         )
         snapshot["version"] = version_number

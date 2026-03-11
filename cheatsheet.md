@@ -33,20 +33,20 @@ MASSIVE_API_KEY=A9NpSWOG9TEM0DuuaIddkjJPPjVt8ZvV
 - **Deployment Type:** Git clone → Build on VM → Run container
 - **Location:** `/home/azureuser/mcp-massive` on VM
 - **Container Name:** `massive-mcp`
-- **Docker Network:** `research-network`
+- **Docker Network:** `trading-network`
 - **Port Mapping:** Host `8000` → Container `8000`
 - **Image:** `massive-mcp:latest` (built locally on VM)
 
 ### Docker Networking
 ```
-docker network: research-network
+docker network: trading-network
 ├── research-assistant    → http://massive-mcp:8000/mcp  ✅ Can reach
 ├── microstructure-service → http://massive-mcp:8000/mcp ✅ Can reach
 └── massive-mcp           → Listens on 0.0.0.0:8000
 ```
 
 **Why it works:**
-- All containers are on the same `research-network` Docker network
+- All containers are on the same `trading-network` Docker network
 - Docker's built-in DNS resolves `massive-mcp` hostname to the container IP
 - No need for `localhost` or VM public IP from within containers
 
@@ -80,7 +80,7 @@ Runs `git pull` on VM → pulls latest from `origin` (your fork)
 1. Stops `massive-mcp` container
 2. Builds Docker image on VM: `docker build -t massive-mcp:latest`
 3. Starts container with:
-   - Network: `research-network`
+   - Network: `trading-network`
    - Port: `8000:8000`
    - Env file: `/home/azureuser/.env`
    - Environment: `MCP_TRANSPORT=streamable-http`, `PORT=8000`
@@ -211,11 +211,11 @@ bash massive_deploy.sh vm-start
 
 ### Network Issues
 ```bash
-# Verify research-network exists
-ssh azureuser@52.149.157.34 "docker network ls | grep research"
+# Verify trading-network exists
+ssh azureuser@52.149.157.34 "docker network ls | grep trading"
 
 # Verify all containers are on same network
-ssh azureuser@52.149.157.34 "docker network inspect research-network"
+ssh azureuser@52.149.157.34 "docker network inspect trading-network"
 ```
 
 ### API Key Issues
@@ -291,5 +291,5 @@ MASSIVE_MCP_URL=http://127.0.0.1:8000/mcp
 | SSH to VM | `./vm_deploy.sh ssh` |
 | Test from container | `docker exec research-assistant curl http://massive-mcp:8000/mcp` |
 
-**Network Test URL:** `http://massive-mcp:8000/mcp` (from any container on `research-network`)  
+**Network Test URL:** `http://massive-mcp:8000/mcp` (from any container on `trading-network`)  
 **External URL:** `http://52.149.157.34:8000/mcp` (from outside VM)
